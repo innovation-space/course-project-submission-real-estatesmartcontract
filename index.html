@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🏠 Real Estate DApp</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, #1e3a5f, #0f172a);
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #1e40af;
+    }
+
+    header h1 { font-size: 1.5rem; color: #60a5fa; }
+
+    #connectBtn {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    #connectBtn:hover { background: #1d4ed8; }
+
+    #walletAddress {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      margin-top: 4px;
+      text-align: right;
+    }
+
+    .container { max-width: 1100px; margin: 40px auto; padding: 0 20px; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 24px;
+    }
+
+    .card h2 {
+      font-size: 1.1rem;
+      color: #60a5fa;
+      margin-bottom: 16px;
+      border-bottom: 1px solid #334155;
+      padding-bottom: 10px;
+    }
+
+    label { font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 4px; }
+
+    input {
+      width: 100%;
+      padding: 10px 12px;
+      background: #0f172a;
+      border: 1px solid #475569;
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+    }
+    input:focus { outline: none; border-color: #2563eb; }
+
+    button.action {
+      width: 100%;
+      padding: 11px;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      margin-top: 4px;
+    }
+    button.action:hover { background: #1d4ed8; }
+    button.action.green { background: #16a34a; }
+    button.action.green:hover { background: #15803d; }
+
+    #status {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 0.85rem;
+      color: #94a3b8;
+      margin-bottom: 24px;
+      min-height: 40px;
+    }
+    #status.success { color: #4ade80; border-color: #16a34a; }
+    #status.error   { color: #f87171; border-color: #dc2626; }
+
+    .properties-section h2 {
+      font-size: 1.2rem;
+      color: #60a5fa;
+      margin-bottom: 16px;
+    }
+
+    #propertiesList {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .property-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 18px;
+    }
+
+    .property-card .prop-id {
+      font-size: 0.75rem;
+      color: #64748b;
+      margin-bottom: 6px;
+    }
+
+    .property-card .prop-location {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #e2e8f0;
+      margin-bottom: 8px;
+    }
+
+    .property-card .prop-price {
+      font-size: 0.9rem;
+      color: #34d399;
+      margin-bottom: 8px;
+    }
+
+    .property-card .prop-status {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      background: #064e3b;
+      color: #34d399;
+    }
+
+    .property-card .prop-owner {
+      font-size: 0.72rem;
+      color: #64748b;
+      margin-top: 8px;
+      word-break: break-all;
+    }
+
+    .empty { color: #475569; text-align: center; padding: 40px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🏠 Real Estate DApp</h1>
+  <div>
+    <button id="connectBtn" onclick="connectWallet()">Connect Wallet</button>
+    <div id="walletAddress">Not connected</div>
+  </div>
+</header>
+
+<div class="container">
+
+  <div id="status">ℹ️ Connect your MetaMask wallet to interact with the contract.</div>
+
+  <div class="grid">
+
+    <!-- List Property -->
+    <div class="card">
+      <h2>📋 List a Property</h2>
+      <label>Location</label>
+      <input type="text" id="listLocation" placeholder="e.g. 123 Main St, Chennai" />
+      <label>Price (in ETH)</label>
+      <input type="number" id="listPrice" placeholder="e.g. 0.5" step="0.01" />
+      <button class="action" onclick="listProperty()">List Property</button>
+    </div>
+
+    <!-- Update Price -->
+    <div class="card">
+      <h2>✏️ Update Property Price</h2>
+      <label>Property ID</label>
+      <input type="number" id="updateId" placeholder="e.g. 1" />
+      <label>New Price (in ETH)</label>
+      <input type="number" id="updatePrice" placeholder="e.g. 0.8" step="0.01" />
+      <button class="action" onclick="updatePrice()">Update Price</button>
+    </div>
+
+    <!-- Get Property -->
+    <div class="card">
+      <h2>🔍 Get Property Details</h2>
+      <label>Property ID</label>
+      <input type="number" id="getId" placeholder="e.g. 1" />
+      <button class="action green" onclick="getProperty()">Fetch Property</button>
+      <div id="getResult" style="margin-top:12px; font-size:0.85rem; color:#94a3b8;"></div>
+    </div>
+
+    <!-- Deposit Escrow -->
+    <div class="card">
+      <h2>🔒 Deposit Escrow (Buy)</h2>
+      <label>Property ID</label>
+      <input type="number" id="escrowId" placeholder="e.g. 1" />
+      <label>Amount (in ETH — must match asking price)</label>
+      <input type="number" id="escrowAmount" placeholder="e.g. 0.5" step="0.01" />
+      <button class="action" onclick="depositEscrow()">Deposit to Escrow</button>
+    </div>
+
+  </div>
+
+  <!-- Properties List -->
+  <div class="properties-section">
+    <h2>🏘️ Listed Properties <button class="action" style="width:auto;padding:6px 16px;font-size:0.8rem;float:right" onclick="loadProperties()">Refresh</button></h2>
+    <div id="propertiesList"><p class="empty">Connect wallet and click Refresh to load properties.</p></div>
+  </div>
+
+</div>
+
+<script>
+  // ── Replace with your deployed contract address ──
+  const CONTRACT_ADDRESS = "0xYourDeployedContractAddressHere";
+
+  const ABI = [
+    "function listProperty(string calldata _location, uint256 _priceWei) external returns (uint256)",
+    "function updatePrice(uint256 _propertyId, uint256 _newPrice) external",
+    "function depositEscrow(uint256 _propertyId) external payable",
+    "function getProperty(uint256 _id) external view returns (tuple(uint256 id, address owner, string location, uint256 priceWei, uint8 status, bool exists))",
+    "function propertyCount() external view returns (uint256)",
+    "event PropertyListed(uint256 indexed propertyId, address indexed owner, uint256 price)"
+  ];
+
+  const STATUS_LABELS = ["Available", "Under Escrow", "Sold", "Rented"];
+
+  let provider, signer, contract;
+
+  async function connectWallet() {
+    if (!window.ethereum) {
+      setStatus("MetaMask not found. Please install it.", "error");
+      return;
+    }
+    try {
+      provider = new ethers.providers.Web3Provider(window.ethereum);
+      await provider.send("eth_requestAccounts", []);
+      signer = provider.getSigner();
+      contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+      const addr = await signer.getAddress();
+      document.getElementById("walletAddress").textContent =
+        addr.slice(0, 6) + "..." + addr.slice(-4);
+      document.getElementById("connectBtn").textContent = "Connected ✅";
+      setStatus("Wallet connected: " + addr, "success");
+      loadProperties();
+    } catch (e) {
+      setStatus("Connection failed: " + e.message, "error");
+    }
+  }
+
+  async function listProperty() {
+    const location = document.getElementById("listLocation").value.trim();
+    const priceEth = document.getElementById("listPrice").value;
+    if (!location || !priceEth) { setStatus("Fill in all fields.", "error"); return; }
+    try {
+      setStatus("⏳ Submitting transaction...");
+      const priceWei = ethers.utils.parseEther(priceEth);
+      const tx = await contract.listProperty(location, priceWei);
+      await tx.wait();
+      setStatus(`✅ Property listed! TX: ${tx.hash}`, "success");
+      loadProperties();
+    } catch (e) {
+      setStatus("Error: " + e.message, "error");
+    }
+  }
+
+  async function updatePrice() {
+    const id = document.getElementById("updateId").value;
+    const priceEth = document.getElementById("updatePrice").value;
+    if (!id || !priceEth) { setStatus("Fill in all fields.", "error"); return; }
+    try {
+      setStatus("⏳ Submitting transaction...");
+      const priceWei = ethers.utils.parseEther(priceEth);
+      const tx = await contract.updatePrice(id, priceWei);
+      await tx.wait();
+      setStatus(`✅ Price updated! TX: ${tx.hash}`, "success");
+      loadProperties();
+    } catch (e) {
+      setStatus("Error: " + e.message, "error");
+    }
+  }
+
+  async function depositEscrow() {
+    const id = document.getElementById("escrowId").value;
+    const amountEth = document.getElementById("escrowAmount").value;
+    if (!id || !amountEth) { setStatus("Fill in all fields.", "error"); return; }
+    try {
+      setStatus("⏳ Submitting transaction...");
+      const amountWei = ethers.utils.parseEther(amountEth);
+      const tx = await contract.depositEscrow(id, { value: amountWei });
+      await tx.wait();
+      setStatus(`✅ Escrow deposited! TX: ${tx.hash}`, "success");
+      loadProperties();
+    } catch (e) {
+      setStatus("Error: " + e.message, "error");
+    }
+  }
+
+  async function getProperty() {
+    const id = document.getElementById("getId").value;
+    if (!id) { setStatus("Enter a property ID.", "error"); return; }
+    try {
+      const p = await contract.getProperty(id);
+      document.getElementById("getResult").innerHTML = `
+        <b>ID:</b> ${p.id.toString()}<br>
+        <b>Location:</b> ${p.location}<br>
+        <b>Price:</b> ${ethers.utils.formatEther(p.priceWei)} ETH<br>
+        <b>Status:</b> ${STATUS_LABELS[p.status]}<br>
+        <b>Owner:</b> ${p.owner}
+      `;
+    } catch (e) {
+      setStatus("Error: " + e.message, "error");
+    }
+  }
+
+  async function loadProperties() {
+    const list = document.getElementById("propertiesList");
+    if (!contract) { list.innerHTML = '<p class="empty">Connect wallet first.</p>'; return; }
+    try {
+      const count = await contract.propertyCount();
+      if (count.toNumber() === 0) {
+        list.innerHTML = '<p class="empty">No properties listed yet.</p>';
+        return;
+      }
+      list.innerHTML = "";
+      for (let i = 1; i <= count.toNumber(); i++) {
+        const p = await contract.getProperty(i);
+        list.innerHTML += `
+          <div class="property-card">
+            <div class="prop-id">Property #${p.id.toString()}</div>
+            <div class="prop-location">📍 ${p.location}</div>
+            <div class="prop-price">Ξ ${ethers.utils.formatEther(p.priceWei)} ETH</div>
+            <span class="prop-status">${STATUS_LABELS[p.status]}</span>
+            <div class="prop-owner">Owner: ${p.owner}</div>
+          </div>`;
+      }
+    } catch (e) {
+      list.innerHTML = `<p class="empty">Error loading: ${e.message}</p>`;
+    }
+  }
+
+  function setStatus(msg, type = "") {
+    const el = document.getElementById("status");
+    el.textContent = msg;
+    el.className = type;
+  }
+</script>
+
+</body>
+</html>
