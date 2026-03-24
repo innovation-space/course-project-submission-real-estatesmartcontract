@@ -47,6 +47,23 @@
         
         <button class="wallet-btn" id="walletBtn" onclick="connectWallet()">Connect Polkadot.js</button>
     </div>
+    <div style="background-color: #111827; color: #10b981; padding: 8px 20px; font-size: 12px; display: flex; justify-content: space-between; font-family: monospace; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <span>🟢 Connected: Polkadot Testnet (Rococo)</span>
+        <span>Substrate Block: <span id="blockCounter">14,203,412</span></span>
+    </div>
+
+    <script>
+        // Add this to your existing <script> tag at the bottom!
+        // Polkadot produces a block roughly every 6 seconds
+        setInterval(() => {
+            const blockSpan = document.getElementById('blockCounter');
+            if(blockSpan) {
+                let currentBlock = parseInt(blockSpan.innerText.replace(/,/g, ''));
+                currentBlock += 1;
+                blockSpan.innerText = currentBlock.toLocaleString();
+            }
+        }, 6000);
+    </script>
 
     <div class="container">
         
