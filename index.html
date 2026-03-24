@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🏠 Real Estate DApp</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+    header { background: linear-gradient(135deg, #1e3a5f, #0f172a); padding: 20px 40px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e40af; }
+    header h1 { font-size: 1.5rem; color: #60a5fa; }
+    #connectBtn { background: #2563eb; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; }
+    #connectBtn:hover { background: #1d4ed8; }
+    #walletAddress { font-size: 0.8rem; color: #94a3b8; margin-top: 4px; text-align: right; }
+    .container { max-width: 1100px; margin: 40px auto; padding: 0 20px; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+    .tab { padding: 8px 18px; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: #94a3b8; cursor: pointer; font-size: 0.9rem; }
+    .tab.active { background: #2563eb; color: white; border-color: #2563eb; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 40px; }
+    @media(max-width:700px){ .grid { grid-template-columns: 1fr; } }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 24px; }
+    .card h2 { font-size: 1.1rem; color: #60a5fa; margin-bottom: 16px; border-bottom: 1px solid #334155; padding-bottom: 10px; }
+    label { font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 4px; }
+    input, select { width: 100%; padding: 10px 12px; background: #0f172a; border: 1px solid #475569; border-radius: 8px; color: #e2e8f0; font-size: 0.9rem; margin-bottom: 12px; }
+    input:focus, select:focus { outline: none; border-color: #2563eb; }
+    button.action { width: 100%; padding: 11px; background: #2563eb; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 0.95rem; margin-top: 4px; }
+    button.action:hover { background: #1d4ed8; }
+    button.action.green { background: #16a34a; } button.action.green:hover { background: #15803d; }
+    button.action.red { background: #dc2626; } button.action.red:hover { background: #b91c1c; }
+    button.action.yellow { background: #d97706; } button.action.yellow:hover { background: #b45309; }
+    #status { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 12px 16px; font-size: 0.85rem; color: #94a3b8; margin-bottom: 24px; min-height: 40px; word-break: break-all; }
+    #status.success { color: #4ade80; border-color: #16a34a; }
+    #status.error { color: #f87171; border-color: #dc2626; }
+    .result-box { margin-top: 12px; font-size: 0.85rem; color: #94a3b8; background: #0f172a; border-radius: 8px; padding: 10px 14px; line-height: 1.8; }
+    #propertiesList { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+    .property-card { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 18px; }
+    .property-card .prop-id { font-size: 0.75rem; color: #64748b; margin-bottom: 6px; }
+    .property-card .prop-location { font-size: 1rem; font-weight: 600; color: #e2e8f0; margin-bottom: 8px; }
+    .property-card .prop-price { font-size: 0.9rem; color: #34d399; margin-bottom: 8px; }
+    .property-card .prop-owner { font-size: 0.72rem; color: #64748b; margin-top: 8px; word-break: break-all; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; }
+    .badge.available { background: #064e3b; color: #34d399; }
+    .badge.underescrow { background: #1e3a5f; color: #60a5fa; }
+    .badge.sold { background: #3b0764; color: #c084fc; }
+    .badge.rented { background: #431407; color: #fb923c; }
+    .empty { color: #475569; text-align: center; padding: 40px; }
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .section-header h2 { font-size: 1.2rem; color: #60a5fa; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🏠 Real Estate DApp</h1>
+  <div>
+    <button id="connectBtn" onclick="connectWallet()">Connect Wallet</button>
+    <div id="walletAddress">Not connected</div>
+  </div>
+</header>
+
+<div class="container">
+
+  <div id="status">ℹ️ Connect your MetaMask wallet to interact with the contract.</div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('listing', this)">📋 Listing</div>
+    <div class="tab" onclick="switchTab('escrow', this)">🔒 Escrow</div>
+    <div class="tab" onclick="switchTab('rental', this)">🏘️ Rental</div>
+    <div class="tab" onclick="switchTab('dispute', this)">⚖️ Dispute</div>
+    <div class="tab" onclick="switchTab('properties', this)">🏠 Properties</div>
+  </div>
+
+  <!-- Listing -->
+  <div id="tab-listing" class="tab-content active">
+    <div class="grid">
+      <div class="card">
+        <h2>📋 List a Property</h2>
+        <label>Location</label>
+        <input type="text" id="listLocation" placeholder="e.g. 123 Main St, Chennai" />
+        <label>Price (in ETH)</label>
+        <input type="number" id="listPrice" placeholder="e.g. 0.5" step="0.01" />
+        <button class="action" onclick="listProperty()">List Property</button>
+      </div>
+      <div class="card">
+        <h2>✏️ Update Property Price</h2>
+        <label>Property ID</label>
+        <input type="number" id="updateId" placeholder="e.g. 1" />
+        <label>New Price (in ETH)</label>
+        <input type="number" id="updatePrice" placeholder="e.g. 0.8" step="0.01" />
+        <button class="action" onclick="updatePrice()">Update Price</button>
+      </div>
+      <div class="card">
+        <h2>🔍 Get Property Details</h2>
+        <label>Property ID</label>
+        <input type="number" id="getId" placeholder="e.g. 1" />
+        <button class="action green" onclick="getProperty()">Fetch Property</button>
+        <div id="getResult" class="result-box" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Escrow -->
+  <div id="tab-escrow" class="tab-content">
+    <div class="grid">
+      <div class="card">
+        <h2>🔒 Deposit Escrow (Buy)</h2>
+        <label>Property ID</label>
+        <input type="number" id="escrowId" placeholder="e.g. 1" />
+        <label>Amount in ETH (must match asking price)</label>
+        <input type="number" id="escrowAmount" placeholder="e.g. 0.5" step="0.01" />
+        <button class="action" onclick="depositEscrow()">Deposit to Escrow</button>
+      </div>
+      <div class="card">
+        <h2>✅ Confirm Transaction</h2>
+        <label>Property ID</label>
+        <input type="number" id="confirmId" placeholder="e.g. 1" />
+        <button class="action green" onclick="confirmTransaction()">Confirm Transaction</button>
+      </div>
+      <div class="card">
+        <h2>🔍 Get Escrow Details</h2>
+        <label>Property ID</label>
+        <input type="number" id="escrowViewId" placeholder="e.g. 1" />
+        <button class="action green" onclick="getEscrow()">Fetch Escrow</button>
+        <div id="escrowResult" class="result-box" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rental -->
+  <div id="tab-rental" class="tab-content">
+    <div class="grid">
+      <div class="card">
+        <h2>🏘️ Create Rental</h2>
+        <label>Property ID</label>
+        <input type="number" id="rentalPropId" placeholder="e.g. 1" />
+        <label>Tenant Wallet Address</label>
+        <input type="text" id="rentalTenant" placeholder="0x..." />
+        <label>Rent Per Month (ETH)</label>
+        <input type="number" id="rentalRent" placeholder="e.g. 0.1" step="0.01" />
+        <label>Duration (months)</label>
+        <input type="number" id="rentalDuration" placeholder="e.g. 12" />
+        <button class="action" onclick="createRental()">Create Rental</button>
+      </div>
+      <div class="card">
+        <h2>💸 Pay Rent</h2>
+        <label>Property ID</label>
+        <input type="number" id="payRentId" placeholder="e.g. 1" />
+        <label>Rent Amount (ETH)</label>
+        <input type="number" id="payRentAmount" placeholder="e.g. 0.1" step="0.01" />
+        <button class="action green" onclick="payRent()">Pay Rent</button>
+      </div>
+      <div class="card">
+        <h2>🔚 End Rental</h2>
+        <label>Property ID</label>
+        <input type="number" id="endRentalId" placeholder="e.g. 1" />
+        <button class="action red" onclick="endRental()">End Rental & Return Deposit</button>
+      </div>
+      <div class="card">
+        <h2>🔍 Get Rental Details</h2>
+        <label>Property ID</label>
+        <input type="number" id="rentalViewId" placeholder="e.g. 1" />
+        <button class="action green" onclick="getRental()">Fetch Rental</button>
+        <div id="rentalResult" class="result-box" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dispute -->
+  <div id="tab-dispute" class="tab-content">
+    <div class="grid">
+      <div class="card">
+        <h2>⚠️ Raise Dispute</h2>
+        <label>Property ID</label>
+        <input type="number" id="disputeId" placeholder="e.g. 1" />
+        <button class="action yellow" onclick="raiseDispute()">Raise Dispute</button>
+      </div>
+      <div class="card">
+        <h2>⚖️ Resolve Dispute (Admin Only)</h2>
+        <label>Property ID</label>
+        <input type="number" id="resolveId" placeholder="e.g. 1" />
+        <label>Decision</label>
+        <select id="resolveDecision">
+          <option value="true">Refund Buyer</option>
+          <option value="false">Pay Seller</option>
+        </select>
+        <button class="action red" onclick="resolveDispute()">Resolve Dispute</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Properties -->
+  <div id="tab-properties" class="tab-content">
+    <div class="section-header">
+      <h2>🏠 All Listed Properties</h2>
+      <button class="action" style="width:auto;padding:8px 18px" onclick="loadProperties()">🔄 Refresh</button>
+    </div>
+    <div id="propertiesList">
+      <p class="empty">Connect wallet and click Refresh to load properties.</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Replace with your deployed contract address
+  const CONTRACT_ADDRESS = "0xYourDeployedContractAddressHere";
+
+  const ABI = [
+    "function listProperty(string calldata _location, uint256 _priceWei) external returns (uint256)",
+    "function updatePrice(uint256 _propertyId, uint256 _newPrice) external",
+    "function depositEscrow(uint256 _propertyId) external payable",
+    "function confirmTransaction(uint256 _propertyId) external",
+    "function raiseDispute(uint256 _propertyId) external",
+    "function resolveDispute(uint256 _propertyId, bool _refundBuyer) external",
+    "function createRental(uint256 _propertyId, address _tenant, uint256 _rentPerMonth, uint256 _durationMonths) external payable",
+    "function payRent(uint256 _propertyId) external payable",
+    "function endRental(uint256 _propertyId) external",
+    "function getProperty(uint256 _id) external view returns (tuple(uint256 id, address owner, string location, uint256 priceWei, uint8 status, bool exists))",
+    "function getEscrow(uint256 _id) external view returns (tuple(address buyer, uint256 amountDeposited, bool buyerConfirmed, bool sellerConfirmed, bool disputed, bool released))",
+    "function getRental(uint256 _id) external view returns (tuple(address tenant, uint256 rentPerMonth, uint256 startTimestamp, uint256 durationMonths, uint256 depositPaid, bool active))",
+    "function propertyCount() external view returns (uint256)",
+    "event PropertyListed(uint256 indexed propertyId, address indexed owner, uint256 price)",
+    "event EscrowDeposited(uint256 indexed propertyId, address indexed buyer, uint256 amount)",
+    "event DisputeRaised(uint256 indexed propertyId, address indexed raisedBy)",
+    "event RentalCreated(uint256 indexed propertyId, address indexed tenant, uint256 durationMonths)"
+  ];
+
+  const STATUS_LABELS  = ["Available", "Under Escrow", "Sold", "Rented"];
+  const STATUS_CLASSES = ["available", "underescrow", "sold", "rented"];
+
+  let provider, signer, contract;
+
+  function switchTab(name, el) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    el.classList.add('active');
+  }
+
+  async function connectWallet() {
+    if (!window.ethereum) { setStatus("MetaMask not found. Please install it.", "error"); return; }
+    try {
+      provider = new ethers.providers.Web3Provider(window.ethereum);
+      await provider.send("eth_requestAccounts", []);
+      signer = provider.getSigner();
+      contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+      const addr = await signer.getAddress();
+      document.getElementById("walletAddress").textContent = addr.slice(0,6) + "..." + addr.slice(-4);
+      document.getElementById("connectBtn").textContent = "Connected ✅";
+      setStatus("Wallet connected: " + addr, "success");
+    } catch(e) { setStatus("Connection failed: " + e.message, "error"); }
+  }
+
+  async function listProperty() {
+    const loc = document.getElementById("listLocation").value.trim();
+    const eth = document.getElementById("listPrice").value;
+    if (!loc || !eth) { setStatus("Fill in all fields.", "error"); return; }
+    try {
+      setStatus("⏳ Submitting...");
+      const tx = await contract.listProperty(loc, ethers.utils.parseEther(eth));
+      await tx.wait();
+      setStatus("✅ Property listed! TX: " + tx.hash, "success");
+    } catch(e) { setStatus("Error: " + e.message, "error"); }
+  }
+
+  async function updatePrice() {
+    const id = document.getElementById("updateId").value;
+    const eth = document.getElementById("updatePrice").value;
+    if (!id || !eth) { setStatus("Fill in all fields.", "error"); return; }
+    try {
+      setStatus("⏳ Submitting...");
+      const tx = await contract.updatePrice(id, ethers.utils.parseEther(eth));
+      await tx.wait();
+      setStatus("✅ Price updated! TX: " + tx.hash, "success");
+    } catch(e) { setStatus("Error: " + e.message, "error"); }
+  }
+
+  async function getProperty() {
+    const id = document.getElementById("getId").value;
+    if (!id) { setStatus("Enter a property ID.", "error"); return; }
+    try {
+      const p = await contract.getProperty(id);
+      const box = document.getElementById("getResult");
+      box.style.display = "block";
+      box.innerHTML = `<b>ID:</b> ${p.id}<br><b>Location:</b> ${p.location}<br><b>Price:</b> ${ethers.utils.formatEther(p.priceWei)} ETH<br><b>Status:</b> ${STATUS_LABELS[p.status]}<br><b>Owner:</b> ${p.owner}`;
+    } catch(e) { setStatus("Error: " + e.message, "error"); }
+  }
+
+  async function depositEscrow() {
+    const id = document.getElementById("escrowId").value;
+    const eth = document.getElementById("escrowAmount").value;
+    if (!id || !eth) { setStatus("Fill in all fields.", "error"); return; }
+    try {
+      setStatus("⏳ Submitting...");
+      const tx = await contract.depositEscrow(id, { value: ethers.utils.parseEther(eth) });
+      await tx.wait();
+      setStatus("✅ Escrow deposited! TX: " + tx.hash, "success");
+    } catch(e) { setStatus("Error: " + e.message, "error"); }
+  }
+
+  async function confirmTransaction() {
+    const id = document.getElementById("confirmId").value;
+    if (!id) { setStatus("Enter a property ID.", "error"); return; }
+    try {
+      setStatus("⏳ Submitting...");
+      const tx = await contract.confirmTransaction(id);
+      await tx.wait();
+      setStatus("✅ Confirmed! TX: " + tx.hash, "success");
+    } catch(e) { setStatus("Error: " + e.message, "error"); }
+  }
+
+  async function getEscrow() {
+    const id = document.getElementById("escrowViewId").value;
+    if (!id) { setStatus("Enter a property ID.", "error"); return; }
+    try {
+      const e = await contract.getEscrow(id);
+      const box = document.getElementById("escrowResult");
+      box.style.display = "block";
+      box.innerHTML = `<b>Buyer:</b> ${e.buyer}<br><b>Amount:</b> ${ethers.utils.formatEther(e.amountDeposited)} ETH<br><b>Buyer Confirmed:</b> ${e.buyerConfirmed}<br><b>Seller Confirmed:</b> ${e.sellerConfirmed}<br><b>Disputed:</b> ${e.disputed}<br><b>Released:</b> ${e.released}`;
+    } catch(e) { setStatus("Error: " + e.message, "error"); }
+  }
+
+  async function createRental() {
+    const id = document.getElementById("rentalPropId").value;
+    const tenant = document.getElementById("rentalTenant").value.trim();
+    const rent = document.getElementById("rentalRent").value;
+    const duration = document.getElementById("rentalDuration").value;
+    if (!id || !tenant || !rent || !duration) { setStatus("Fill in all fields.", "error"); return; }
+    try {
+      setStatus("⏳ Submitting...");
+      const rentWei = ethers.utils.parseEther(rent);
+      const tx = await contract.createRental(id, tenant, rentWei, duration, { value: rentWei });
+      await tx.wait();
+      setStatus("✅ Rental created! TX: " + tx.hash, "success");
+    } catch(e) { setStatus("Error: " + e.message, "error"); }
+  }
+
+  async function payRent() {
+    const id = document.getElementById("payRentId").value;
+    const eth = document.getElementById("payRentAmount").value;
+    if (!id || !eth) { setStatus("Fill in all fields.", "error"); return; }
+    try {
+      setStatus("⏳ Submitting...");
+      const tx = await contract.payRent(id, { value: ethers.utils.parseEther(eth) });
+      await tx.wait();
+      setStatus("✅ Rent paid! TX: " + tx.hash, "success");
+    } catch(e) { setStatus("Error: " + e.message, "error"); }
+  }
+
+  async function endRental() {
+    const id = document.getElementById("endRentalId").value;
+    if (!id) { setStatus("Enter a property ID.", "error"); return; }
+    try {
+      setStatus("⏳ Submitting...");
+      const tx = await contract.endRental(id);
+      await tx.wait();
+      setStatus("✅ Rental ended! Deposit returned. TX: " + tx.hash, "success");
+    } catch(e) { setStatus("Error: " + e.message, "error"); }
+  }
+
+  async function getRental() {
+    const id = document.getElementById("rentalViewId").value;
+    if (!id) { setStatus("Enter a property ID.", "error"); return; }
+    try {
+      const r = await contract.getRental(id);
+      const box = document.getElementById("rentalResult");
+      box.style.display = "block";
+      const start = new Date(r.startTimestamp * 1000).toLocaleDateString();
+      box.innerHTML = `<b>Tenant:</b> ${r.tenant}<br><b>Rent/Month:</b> ${ethers.utils.formatEther(r.rentPerMonth)} ETH<br><b>Start:</b> ${start}<br><b>Duration:</b> ${r.durationMonths} months<br><b>Deposit:</b> ${ethers.utils.formatEther(r.depositPaid)} ETH<br><b>Active:</b> ${r.active}`;
+    } catch(e) { setStatus("Error: " + e.message, "error"); }
+  }
+
+  async function raiseDispute() {
+    const id = document.getElementById("disputeId").value;
+    if (!id) { setStatus("Enter a property ID.", "error"); return; }
+    try {
+      setStatus("⏳ Submitting...");
+      const tx = await contract.raiseDispute(id);
+      await tx.wait();
+      setStatus("✅ Dispute raised! TX: " + tx.hash, "success");
+    } catch(e) { setStatus("Error: " + e.message, "error"); }
+  }
+
+  async function resolveDispute() {
+    const id = document.getElementById("resolveId").value;
+    const decision = document.getElementById("resolveDecision").value === "true";
+    if (!id) { setStatus("Enter a property ID.", "error"); return; }
+    try {
+      setStatus("⏳ Submitting...");
+      const tx = await contract.resolveDispute(id, decision);
+      await tx.wait();
+      setStatus("✅ Dispute resolved! TX: " + tx.hash, "success");
+    } catch(e) { setStatus("Error: " + e.message, "error"); }
+  }
+
+  async function loadProperties() {
+    const list = document.getElementById("propertiesList");
+    if (!contract) { list.innerHTML = '<p class="empty">Connect wallet first.</p>'; return; }
+    try {
+      list.innerHTML = '<p class="empty">Loading...</p>';
+      const count = await contract.propertyCount();
+      if (count.toNumber() === 0) { list.innerHTML = '<p class="empty">No properties listed yet.</p>'; return; }
+      list.innerHTML = "";
+      for (let i = 1; i <= count.toNumber(); i++) {
+        const p = await contract.getProperty(i);
+        list.innerHTML += `
+          <div class="property-card">
+            <div class="prop-id">Property #${p.id}</div>
+            <div class="prop-location">📍 ${p.location}</div>
+            <div class="prop-price">Ξ ${ethers.utils.formatEther(p.priceWei)} ETH</div>
+            <span class="badge ${STATUS_CLASSES[p.status]}">${STATUS_LABELS[p.status]}</span>
+            <div class="prop-owner">Owner: ${p.owner}</div>
+          </div>`;
+      }
+    } catch(e) { list.innerHTML = `<p class="empty">Error: ${e.message}</p>`; }
+  }
+
+  function setStatus(msg, type = "") {
+    const el = document.getElementById("status");
+    el.textContent = msg;
+    el.className = type;
+  }
+</script>
+</body>
+</html>
