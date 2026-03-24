@@ -2,10 +2,10 @@
 
 ## 1. Team Info
 * **Team Name:** Innovation Space Team
-* **Members:** * Bhumit Nagpal 23BKT0026
-               * Mangal Singhal 23BKT0052
-               *Ashwini Singh chouhan 23BKT0131 
-  * [Add Partner Name or delete this line if solo]
+* **Members:** Bhumit Nagpal 23BKT0026
+              Mangal Singhal 23BKT0052
+               Ashwini Singh chouhan 23BKT0131 
+  
 
 ## 2. Selected Blockchain Platform
 **Polkadot (Substrate)**
