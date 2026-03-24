@@ -17,6 +17,9 @@
         .wallet-btn { background-color: white; color: #e6007a; border: none; padding: 8px 16px; border-radius: 20px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
         .wallet-btn:hover { background-color: #f3f4f6; }
 
+        /* Network Bar */
+        .network-bar { background-color: #111827; color: #10b981; padding: 8px 20px; font-size: 12px; display: flex; justify-content: space-between; font-family: monospace; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
         .container { max-width: 800px; margin: 40px auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); min-height: 400px; }
         h1 { font-size: 24px; margin-top: 0; border-bottom: 2px solid #f3f4f6; padding-bottom: 10px; color: #111827; margin-bottom: 20px; }
         
@@ -34,6 +37,10 @@
 
         .tab-content { display: none; }
         .tab-content.active { display: block; }
+
+        /* Property List Styling */
+        .property-card { border: 1px solid #e5e7eb; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; background-color: #f9fafb; border-left: 4px solid #10b981; animation: fadeIn 0.4s ease-in-out;}
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
@@ -47,23 +54,11 @@
         
         <button class="wallet-btn" id="walletBtn" onclick="connectWallet()">Connect Polkadot.js</button>
     </div>
-    <div style="background-color: #111827; color: #10b981; padding: 8px 20px; font-size: 12px; display: flex; justify-content: space-between; font-family: monospace; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+
+    <div class="network-bar">
         <span>🟢 Connected: Polkadot Testnet (Rococo)</span>
         <span>Substrate Block: <span id="blockCounter">14,203,412</span></span>
     </div>
-
-    <script>
-        // Add this to your existing <script> tag at the bottom!
-        // Polkadot produces a block roughly every 6 seconds
-        setInterval(() => {
-            const blockSpan = document.getElementById('blockCounter');
-            if(blockSpan) {
-                let currentBlock = parseInt(blockSpan.innerText.replace(/,/g, ''));
-                currentBlock += 1;
-                blockSpan.innerText = currentBlock.toLocaleString();
-            }
-        }, 6000);
-    </script>
 
     <div class="container">
         
@@ -71,13 +66,26 @@
             <h1>Property Registry</h1>
             <div class="form-group">
                 <label>Property Address / ID</label>
-                <input type="text" placeholder="e.g. 789 Substrate Avenue">
+                <input type="text" id="regAddress" placeholder="e.g. 789 Substrate Avenue">
             </div>
             <div class="form-group">
                 <label>Listing Price (in DOT)</label>
-                <input type="number" placeholder="e.g. 500">
+                <input type="number" id="regPrice" placeholder="e.g. 500">
             </div>
-            <button class="action-btn" onclick="logTransaction('Property successfully registered to Polkadot Relay Chain')">Register Property</button>
+            <button class="action-btn" onclick="registerNewProperty()">Register Property</button>
+
+            <div style="margin-top: 40px;">
+                <h2 style="font-size: 18px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px;">Active Listings</h2>
+                <div id="propertyList">
+                    <div class="property-card" style="border-left: 4px solid #9ca3af;">
+                        <div>
+                            <h3 style="margin: 0 0 5px 0; font-size: 16px;">Genesis Villa (Demo)</h3>
+                            <p style="margin: 0; color: #6b7280; font-size: 13px;">Owner: 1FRMM8...EX</p>
+                        </div>
+                        <div style="font-weight: bold; color: #e6007a;">1,200 DOT</div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div id="escrow" class="tab-content">
@@ -134,11 +142,10 @@
 
         function connectWallet() {
             const btn = document.getElementById('walletBtn');
-            // Mock Polkadot wallet address
             const mockAddress = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"; 
             
             btn.innerText = mockAddress.substring(0, 6) + "..." + mockAddress.substring(mockAddress.length - 4);
-            btn.style.backgroundColor = "#10b981"; // Green to show success
+            btn.style.backgroundColor = "#10b981"; 
             btn.style.color = "white";
             walletConnected = true;
             
@@ -161,6 +168,54 @@
             const hash = '0x' + Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('');
             document.getElementById('systemLog').innerHTML = `> Executing ink! smart contract...<br>> [Success] ${message}<br>> Transaction Hash: ${hash}`;
         }
+
+        // NEW: Function to add properties to the list dynamically
+        function registerNewProperty() {
+            if (!walletConnected) {
+                alert("Please connect your Polkadot.js wallet first before registering a property!");
+                return;
+            }
+
+            const address = document.getElementById('regAddress').value;
+            const price = document.getElementById('regPrice').value;
+
+            if (!address || !price) {
+                alert("Please fill out both the Property Address and Price.");
+                return;
+            }
+
+            const propertyList = document.getElementById('propertyList');
+            const newPropertyCard = document.createElement('div');
+            newPropertyCard.className = 'property-card';
+            
+            newPropertyCard.innerHTML = `
+                <div>
+                    <h3 style="margin: 0 0 5px 0; font-size: 16px;">${address}</h3>
+                    <p style="margin: 0; color: #10b981; font-size: 13px; font-weight: 600;">Owner: 5Grwva...utQY (You)</p>
+                </div>
+                <div style="font-weight: bold; color: #e6007a; font-size: 18px;">${price} DOT</div>
+            `;
+
+            // Insert the new property at the top of the list
+            propertyList.insertBefore(newPropertyCard, propertyList.firstChild);
+
+            // Trigger the transaction log at the bottom
+            logTransaction(`Property "${address}" registered to Polkadot Relay Chain`);
+
+            // Clear the input fields to make it look clean
+            document.getElementById('regAddress').value = '';
+            document.getElementById('regPrice').value = '';
+        }
+
+        // Live Block Counter logic
+        setInterval(() => {
+            const blockSpan = document.getElementById('blockCounter');
+            if(blockSpan) {
+                let currentBlock = parseInt(blockSpan.innerText.replace(/,/g, ''));
+                currentBlock += 1;
+                blockSpan.innerText = currentBlock.toLocaleString();
+            }
+        }, 6000);
     </script>
 </body>
 </html>
