@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polkadot Real Estate Dashboard</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f9fafb; color: #111827; margin: 0; padding: 0; }
+        
+        /* Navigation Bar */
+        .navbar { background-color: #e6007a; padding: 15px 20px; display: flex; align-items: center; gap: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .navbar button.nav-btn { background: none; color: white; border: none; font-weight: 600; font-size: 16px; padding: 8px 12px; border-radius: 4px; cursor: pointer; transition: background 0.2s; }
+        .navbar button.nav-btn:hover, .navbar button.nav-btn.active { background-color: #c20066; }
+        .navbar .brand { font-weight: 700; font-size: 18px; margin-right: auto; color: white; }
+        
+        /* Wallet Button */
+        .wallet-btn { background-color: white; color: #e6007a; border: none; padding: 8px 16px; border-radius: 20px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+        .wallet-btn:hover { background-color: #f3f4f6; }
+
+        /* Network Bar */
+        .network-bar { background-color: #111827; color: #10b981; padding: 8px 20px; font-size: 12px; display: flex; justify-content: space-between; font-family: monospace; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
+        .container { max-width: 800px; margin: 40px auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); min-height: 400px; }
+        h1 { font-size: 24px; margin-top: 0; border-bottom: 2px solid #f3f4f6; padding-bottom: 10px; color: #111827; margin-bottom: 20px; }
+        
+        /* Forms */
+        .form-group { margin-bottom: 16px; }
+        label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; color: #374151; }
+        input { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        input:focus { outline: none; border-color: #e6007a; }
+        
+        .action-btn { background-color: #111827; color: white; border: none; padding: 12px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 10px; transition: background 0.2s;}
+        .action-btn:hover { background-color: #374151; }
+
+        /* Fake Terminal Log */
+        .log { margin-top: 30px; background: #1f2937; color: #10b981; padding: 15px; border-radius: 6px; font-family: monospace; font-size: 13px; min-height: 80px; }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Property List Styling */
+        .property-card { border: 1px solid #e5e7eb; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; background-color: #f9fafb; border-left: 4px solid #10b981; animation: fadeIn 0.4s ease-in-out;}
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div class="navbar">
+        <div class="brand">Polkadot (Substrate) Node</div>
+        <button class="nav-btn active" onclick="switchTab('registry', this)">Registry</button>
+        <button class="nav-btn" onclick="switchTab('escrow', this)">Escrow</button>
+        <button class="nav-btn" onclick="switchTab('rental', this)">Rentals</button>
+        <button class="nav-btn" onclick="switchTab('dispute', this)">Disputes</button>
+        
+        <button class="wallet-btn" id="walletBtn" onclick="connectWallet()">Connect Polkadot.js</button>
+    </div>
+
+    <div class="network-bar">
+        <span>🟢 Connected: Polkadot Testnet (Rococo)</span>
+        <span>Substrate Block: <span id="blockCounter">14,203,412</span></span>
+    </div>
+
+    <div class="container">
+        
+        <div id="registry" class="tab-content active">
+            <h1>Property Registry</h1>
+            <div class="form-group">
+                <label>Property Address / ID</label>
+                <input type="text" id="regAddress" placeholder="e.g. 789 Substrate Avenue">
+            </div>
+            <div class="form-group">
+                <label>Listing Price (in DOT)</label>
+                <input type="number" id="regPrice" placeholder="e.g. 500">
+            </div>
+            <button class="action-btn" onclick="registerNewProperty()">Register Property</button>
+
+            <div style="margin-top: 40px;">
+                <h2 style="font-size: 18px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px;">Active Listings</h2>
+                <div id="propertyList">
+                    <div class="property-card" style="border-left: 4px solid #9ca3af;">
+                        <div>
+                            <h3 style="margin: 0 0 5px 0; font-size: 16px;">Genesis Villa (Demo)</h3>
+                            <p style="margin: 0; color: #6b7280; font-size: 13px;">Owner: 1FRMM8...EX</p>
+                        </div>
+                        <div style="font-weight: bold; color: #e6007a;">1,200 DOT</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="escrow" class="tab-content">
+            <h1>Secure Escrow Services</h1>
+            <div class="form-group">
+                <label>Property ID</label>
+                <input type="text" placeholder="e.g. PROP-90210">
+            </div>
+            <div class="form-group">
+                <label>Buyer Wallet Address</label>
+                <input type="text" placeholder="e.g. 1FRMM8PEiWXYax7rpS6X4XZX1aAAxSWx1CrKTyrVYPjEX">
+            </div>
+            <button class="action-btn" onclick="logTransaction('Funds successfully locked in ink! Escrow Contract')">Initialize Escrow Lock</button>
+        </div>
+
+        <div id="rental" class="tab-content">
+            <h1>Rental Agreements</h1>
+            <div class="form-group">
+                <label>Property ID</label>
+                <input type="text" placeholder="e.g. PROP-90210">
+            </div>
+            <div class="form-group" style="display: flex; gap: 15px;">
+                <div style="flex: 1;">
+                    <label>Monthly Rent (DOT)</label>
+                    <input type="number" placeholder="Amount">
+                </div>
+                <div style="flex: 1;">
+                    <label>Duration (Months)</label>
+                    <input type="number" placeholder="e.g. 12">
+                </div>
+            </div>
+            <button class="action-btn" onclick="logTransaction('Rental contract minted and active')">Deploy Rental Contract</button>
+        </div>
+
+        <div id="dispute" class="tab-content">
+            <h1>Dispute Resolution</h1>
+            <div class="form-group">
+                <label>Contract ID</label>
+                <input type="text" placeholder="e.g. RENT-1044">
+            </div>
+            <div class="form-group">
+                <label>Reason for Dispute</label>
+                <input type="text" placeholder="e.g. Non-payment, Escrow violation">
+            </div>
+            <button class="action-btn" style="background-color: #dc2626;" onclick="logTransaction('Dispute flagged for decentralized arbitration')">Raise Dispute</button>
+        </div>
+
+        <div class="log" id="systemLog">> Substrate node connected. Awaiting wallet connection...</div>
+
+    </div>
+
+    <script>
+        let walletConnected = false;
+
+        function connectWallet() {
+            const btn = document.getElementById('walletBtn');
+            const mockAddress = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"; 
+            
+            btn.innerText = mockAddress.substring(0, 6) + "..." + mockAddress.substring(mockAddress.length - 4);
+            btn.style.backgroundColor = "#10b981"; 
+            btn.style.color = "white";
+            walletConnected = true;
+            
+            document.getElementById('systemLog').innerHTML = `> Wallet Connected: ${mockAddress}<br>> Ready to sign transactions.`;
+        }
+
+        function switchTab(tabId, btnElement) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            
+            document.getElementById(tabId).classList.add('active');
+            btnElement.classList.add('active');
+        }
+
+        function logTransaction(message) {
+            if (!walletConnected) {
+                alert("Please connect your Polkadot.js wallet first!");
+                return;
+            }
+            const hash = '0x' + Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('');
+            document.getElementById('systemLog').innerHTML = `> Executing ink! smart contract...<br>> [Success] ${message}<br>> Transaction Hash: ${hash}`;
+        }
+
+        // NEW: Function to add properties to the list dynamically
+        function registerNewProperty() {
+            if (!walletConnected) {
+                alert("Please connect your Polkadot.js wallet first before registering a property!");
+                return;
+            }
+
+            const address = document.getElementById('regAddress').value;
+            const price = document.getElementById('regPrice').value;
+
+            if (!address || !price) {
+                alert("Please fill out both the Property Address and Price.");
+                return;
+            }
+
+            const propertyList = document.getElementById('propertyList');
+            const newPropertyCard = document.createElement('div');
+            newPropertyCard.className = 'property-card';
+            
+            newPropertyCard.innerHTML = `
+                <div>
+                    <h3 style="margin: 0 0 5px 0; font-size: 16px;">${address}</h3>
+                    <p style="margin: 0; color: #10b981; font-size: 13px; font-weight: 600;">Owner: 5Grwva...utQY (You)</p>
+                </div>
+                <div style="font-weight: bold; color: #e6007a; font-size: 18px;">${price} DOT</div>
+            `;
+
+            // Insert the new property at the top of the list
+            propertyList.insertBefore(newPropertyCard, propertyList.firstChild);
+
+            // Trigger the transaction log at the bottom
+            logTransaction(`Property "${address}" registered to Polkadot Relay Chain`);
+
+            // Clear the input fields to make it look clean
+            document.getElementById('regAddress').value = '';
+            document.getElementById('regPrice').value = '';
+        }
+
+        // Live Block Counter logic
+        setInterval(() => {
+            const blockSpan = document.getElementById('blockCounter');
+            if(blockSpan) {
+                let currentBlock = parseInt(blockSpan.innerText.replace(/,/g, ''));
+                currentBlock += 1;
+                blockSpan.innerText = currentBlock.toLocaleString();
+            }
+        }, 6000);
+    </script>
+</body>
+</html>
